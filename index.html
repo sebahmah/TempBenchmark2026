@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foodcourt Temperature Benchmark 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400&display=swap">
+<style>
+:root {
+  --font-anthropic-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-anthropic-serif: "Source Serif 4", Georgia, serif;
+  --color-bg: #f7f8f9; --color-panel: #ffffff; --color-fg: #1b1f24; --color-fg-muted: #5d6670;
+  --color-border-line: #e1e5e9; --color-ok: #1f7a4d; --color-warn: #a35f00; --color-bad: #c23b2e;
+  --cds-chart-series-1: #2f6fb3; --cds-chart-muted: #9fb3c8; --cds-chart-reference: #5d6670; --cds-chart-grid: #eceff2;
+  --cds-chart-axis: #8a939c; --cds-chart-status-critical: #c23b2e;
+  --cds-surface-popover: #ffffff; --cds-border: #e1e5e9; --cds-shadow-popover: 0 4px 16px rgba(20,30,40,.12); --cds-text-secondary: #5d6670;
+  --cds-font-size-caption: .78rem; --cds-font-size-body: .9rem; --cds-font-size-heading: 1.05rem; --cds-font-size-title: 2rem; --cds-font-weight-medium: 500;
+  --cds-gap-xs: 4px; --cds-gap-sm: 8px; --cds-gap-md: 16px; --cds-gap-lg: 24px; --cds-gap-xl: 32px;
+  --cds-pad-xs: 4px; --cds-pad-sm: 8px; --cds-pad-md: 12px; --cds-pad-lg: 20px; --cds-radius: 10px; --cds-dur-slow: .3s;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --color-bg: #121519; --color-panel: #1a1e23; --color-fg: #e8ecef; --color-fg-muted: #9aa4ad; --color-border-line: #2b3138;
+  --color-ok: #4cc38a; --color-warn: #e0a440; --color-bad: #f0705f; --cds-chart-series-1: #6ea8e6; --cds-chart-muted: #4a5d72;
+  --cds-chart-reference: #9aa4ad; --cds-chart-grid: #232930; --cds-chart-axis: #6b747d; --cds-chart-status-critical: #f0705f;
+  --cds-surface-popover: #1f242a; --cds-border: #2b3138; --cds-shadow-popover: 0 4px 16px rgba(0,0,0,.5); --cds-text-secondary: #9aa4ad; color-scheme: dark; } }
+html, body { margin: 0; background: var(--color-bg); color: var(--color-fg); font-family: var(--font-anthropic-sans); }
+#dash-root { max-width: 1200px; margin: 0 auto; padding: 32px max(16px, env(safe-area-inset-right, 0px)) 48px max(16px, env(safe-area-inset-left, 0px)); }
+.dash-skeleton:empty { min-height: 1em; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+</head>
+<body>
+<div id="dash-root">
+<script>
+(function () {
+  var RAW = {"fc_avg": "foodcourt,jun,jul,aug,sep,period\nPalas,23.86,23.31,23.43,22.46,23.27\nIMTM,27.36,27.29,26.24,26.03,26.73\nIMSV,25.85,24.41,25.0,24.07,24.83\nIMCJ,26.21,25.38,26.75,24.42,25.7\nIMIS,25.08,25.03,25.84,23.31,24.82\n", "sensor_avg": "foodcourt,sensor,jun,jul,aug,sep,period,coverage_pct\nPalas,T091 PALS1E1,23.43,23.09,23.16,22.23,22.98,99.7\nPalas,T092 PALS2E1,23.96,23.43,23.53,22.51,23.36,98.4\nPalas,T094 PALS4E1,23.99,23.36,23.4,22.36,23.28,99.7\nPalas,T095 PALS5E1,24.07,23.37,23.62,22.7,23.44,99.8\nIMTM,T082 TMS2E2,27.51,27.46,26.31,26.13,26.85,99.0\nIMTM,T084 TMS4E2,27.53,27.62,26.57,26.3,27.01,98.9\nIMTM,T086 TMS6E2,27.16,26.94,25.97,25.72,26.45,98.6\nIMTM,T087 TMS7E2,27.22,27.16,26.08,26.03,26.62,99.5\nIMSV,T032 SVS12E1,25.38,23.99,25.12,24.36,24.71,99.6\nIMSV,T033 SVS13E1,25.66,24.34,25.12,24.16,24.82,99.8\nIMSV,T034 SVS14E1,26.26,24.73,25.17,24.16,25.08,99.8\nIMSV,T035 SVS15E1,25.87,24.55,24.82,23.82,24.76,99.8\nIMSV,T036 SVS16E1,26.06,24.41,24.75,23.84,24.76,99.8\nIMCJ,T010 CJS10E1,26.55,25.43,26.45,25.37,25.93,90.8\nIMCJ,T011 CJS11E1,25.97,25.29,26.47,24.97,25.67,80.4\nIMCJ,T012 CJS12E1,25.95,25.32,26.64,24.89,25.7,99.7\nIMCJ,T018 CJS18E1,26.27,25.4,27.15,23.34,25.55,99.8\nIMCJ,T019 CJS19E1,26.18,25.32,26.92,23.71,25.54,99.7\nIMIS,T051 ISS1E2,25.2,24.03,25.08,22.63,24.24,99.8\nIMIS,T052 ISS2E2,25.29,25.06,25.82,23.41,24.9,99.8\nIMIS,T053 ISS3E2,25.24,25.81,26.44,23.96,25.38,99.5\nIMIS,T054 ISS4E2,25.21,25.73,26.3,23.99,25.31,98.7\nIMIS,T055 ISS5E2,24.45,24.53,25.56,22.55,24.28,99.7\n", "daily_band": "day,p10,p50,p90,Palas,IMTM,IMSV,IMCJ,IMIS\n2026-06-01,22.7,24.9,27.0,23.2335,26.8314,24.8247,26.411,23.2834\n2026-06-02,22.13,24.1,26.6,22.9922,26.5495,24.0408,26.1862,22.5612\n2026-06-03,22.5,24.3,26.7,23.0957,26.4932,24.4004,26.1479,22.8715\n2026-06-04,23.0,24.9,26.9,24.149,26.4552,24.5629,26.2944,23.5083\n2026-06-05,23.9,25.6,27.0,25.1411,26.4286,25.1262,26.4665,24.3629\n2026-06-06,24.0,25.3,26.8,24.7625,26.3271,24.8312,26.4481,24.8992\n2026-06-07,23.8,25.0,26.8,23.9073,26.5135,24.7242,26.3762,24.7838\n2026-06-08,23.4,25.3,27.0,23.5255,26.6552,24.9258,26.3782,24.8842\n2026-06-09,24.0,25.9,27.3,23.8891,26.9224,25.5329,26.5312,25.6062\n2026-06-10,24.2,26.0,27.9,24.2498,27.5365,25.9167,26.565,25.7067\n2026-06-11,24.0,26.0,27.5,23.7149,27.103,25.9051,26.4991,25.92\n2026-06-12,22.5,25.0,26.9,22.4615,26.7922,24.8505,25.9685,24.7021\n2026-06-13,22.2,24.9,26.6,22.3095,26.6229,24.7667,25.5179,23.9927\n2026-06-14,22.6,25.0,26.9,22.766,26.8606,25.2575,25.4349,24.1462\n2026-06-15,22.6,24.9,26.6,22.5786,26.7115,25.04,25.1419,23.8167\n2026-06-16,22.53,25.0,26.47,22.6505,26.2802,25.1222,25.194,24.0667\n2026-06-17,23.0,24.9,26.5,23.2885,26.5257,24.9237,25.0176,24.1317\n2026-06-18,23.1,25.0,27.1,23.25,26.9345,25.3008,25.1588,24.2292\n2026-06-19,23.2,25.2,27.1,23.5231,27.0062,25.5938,25.3905,24.4476\n2026-06-20,24.1,25.8,27.5,24.3292,27.4167,26.22,25.6513,25.1651\n2026-06-21,24.6,26.1,28.1,24.7818,28.1776,26.6012,25.9776,25.5643\n2026-06-22,24.7,26.3,28.3,24.9719,28.2292,26.7912,26.2493,25.7362\n2026-06-23,24.4,26.4,28.1,24.3517,28.0573,26.8417,26.2685,25.8043\n2026-06-24,24.0,26.5,28.3,24.0108,28.2311,27.0212,26.3706,25.8803\n2026-06-25,24.0,26.5,28.2,23.7087,28.174,26.9617,26.2904,25.9004\n2026-06-26,24.0,26.8,28.6,23.8938,28.3854,27.4909,26.488,26.3054\n2026-06-27,24.2,27.15,29.0,24.0578,28.8059,27.9108,26.9165,26.6729\n2026-06-28,24.6,27.6,29.8,24.7229,29.0575,28.8688,27.3641,27.1153\n2026-06-29,25.2,27.9,29.8,25.5229,29.4613,27.8588,27.7911,27.9464\n2026-06-30,25.5,28.0,29.6,25.9219,29.2711,27.1905,27.8153,28.4618\n2026-07-01,24.8,27.6,29.1,25.3684,29.048,26.7079,27.7182,27.3183\n2026-07-02,24.3,27.0,28.8,25.0453,28.8438,25.8158,27.5876,26.8268\n2026-07-03,24.2,26.3,28.5,24.4172,28.4906,25.5158,26.9295,26.0285\n2026-07-04,22.7,25.4,28.5,22.8068,28.4549,24.9683,26.1851,24.9571\n2026-07-05,21.92,25.2,28.1,22.0238,28.0995,24.9167,25.7253,24.3562\n2026-07-06,21.8,25.0,27.9,22.3786,27.9365,24.5108,25.6104,24.1952\n2026-07-07,23.0,24.9,28.2,23.7276,28.1672,24.125,25.5847,24.4392\n2026-07-08,23.0,24.7,27.4,23.6271,27.662,23.9542,25.3485,24.2829\n2026-07-09,22.6,24.2,27.5,22.6087,27.4281,23.7162,24.6858,24.1958\n2026-07-10,22.0,24.0,27.4,22.2653,27.5172,23.4388,24.4112,23.4146\n2026-07-11,22.0,23.8,27.7,22.2601,27.7335,23.3767,24.3278,23.2777\n2026-07-12,22.0,24.0,27.2,22.6943,27.449,23.635,24.4039,23.2917\n2026-07-13,22.3,23.9,26.6,22.9089,26.6969,23.6054,24.3103,23.3258\n2026-07-14,22.69,24.3,26.7,23.1953,26.7109,23.9129,24.8928,23.9862\n2026-07-15,23.6,24.9,26.6,23.9625,26.2359,24.195,25.2321,25.1883\n2026-07-16,23.8,25.2,26.9,24.2127,26.338,24.5096,25.5175,25.8037\n2026-07-17,23.7,25.3,27.1,23.6958,26.4908,24.6708,25.7574,25.8683\n2026-07-18,23.7,25.6,27.3,23.8038,26.8484,24.8621,25.9853,26.0792\n2026-07-19,24.0,25.7,27.4,24.1922,26.8401,25.0312,25.978,26.3652\n2026-07-20,23.6,25.6,27.7,23.5068,27.7005,24.6963,25.777,25.9367\n2026-07-21,23.1,25.5,27.6,23.0998,27.3545,24.7704,25.4043,26.0334\n2026-07-22,22.5,25.0,27.2,22.4536,27.3276,24.1917,25.431,24.9758\n2026-07-23,22.4,24.5,26.7,22.4969,26.7648,24.1767,24.8319,24.3112\n2026-07-24,22.6,24.3,26.5,22.7469,26.5455,24.12,24.413,24.0004\n2026-07-25,22.8,24.1,26.46,22.6672,26.5859,23.8579,24.302,24.2969\n2026-07-26,22.8,24.5,26.9,23.099,27.0104,24.245,24.7212,24.5079\n2026-07-27,23.3,24.7,27.3,23.6708,27.4682,24.2488,24.9498,25.0188\n2026-07-28,23.1,24.6,27.3,23.2922,27.3635,24.0904,24.838,25.3106\n2026-07-29,23.2,24.9,27.0,23.2672,26.2516,24.1683,24.8272,26.1151\n2026-07-30,23.5,25.15,27.1,23.5712,26.308,24.3922,25.4796,26.1362\n2026-07-31,24.0,25.5,27.6,24.0451,26.7521,24.6657,26.031,26.6377\n2026-08-01,23.4,26.0,28.0,23.7294,26.7828,24.9518,26.509,27.3564\n2026-08-02,23.9,26.4,28.3,24.104,26.8943,25.4208,26.9571,27.8546\n2026-08-03,24.3,26.5,28.0,24.3519,26.8597,25.7533,27.3197,27.1712\n2026-08-04,24.0,26.4,28.2,24.3698,26.8033,25.7788,27.5106,26.9849\n2026-08-05,24.2,26.7,28.5,24.613,26.9833,25.9775,27.8876,27.3392\n2026-08-06,24.7,26.9,28.9,24.9679,27.1597,26.1249,28.0351,27.8271\n2026-08-07,24.5,26.5,28.4,24.6203,26.837,25.9054,27.935,27.1753\n2026-08-08,23.8,26.0,27.9,23.8005,26.2828,25.2846,27.6429,26.4412\n2026-08-09,23.0,25.6,27.7,22.9562,26.324,24.9513,27.4684,25.7338\n2026-08-10,22.8,25.5,27.7,22.9479,26.3264,24.8742,27.2881,25.5348\n2026-08-11,23.85,25.6,27.9,24.0401,26.2375,25.1483,27.3235,25.9729\n2026-08-12,23.9,25.6,27.5,24.0745,25.9826,24.7471,27.2505,25.7438\n2026-08-13,23.0,25.0,27.2,22.9547,25.9068,24.3483,27.0072,24.7754\n2026-08-14,22.8,24.9,26.9,22.6698,25.6828,24.3029,26.6071,24.5067\n2026-08-15,22.8,25.0,27.0,22.7911,26.2599,24.5425,26.4339,24.4821\n2026-08-16,23.0,25.2,26.9,23.4354,26.0318,24.9404,26.4091,24.8588\n2026-08-17,23.8,25.5,27.1,23.9589,26.037,25.2229,26.4897,25.4424\n2026-08-18,23.7,25.3,26.4,23.9227,25.7486,24.5413,26.2386,25.434\n2026-08-19,22.9,24.95,26.4,22.8661,25.9698,24.2612,25.9613,24.6012\n2026-08-20,22.6,25.4,27.0,23.0943,26.2865,25.0068,26.0386,25.1165\n2026-08-21,23.9,26.0,27.7,23.8995,26.3599,25.5795,26.7239,26.6171\n2026-08-22,24.0,26.2,27.4,24.0151,26.2686,25.8471,26.7052,26.7446\n2026-08-23,23.8,25.8,26.9,23.5922,25.9028,25.3917,26.4133,26.092\n2026-08-24,22.8,25.3,26.5,22.6332,25.6792,25.1433,26.1599,25.0658\n2026-08-25,22.8,25.3,26.93,22.6444,25.6708,25.1154,26.1823,25.6717\n2026-08-26,22.6,25.1,26.5,22.4953,25.9727,24.6038,26.3481,25.1346\n2026-08-27,22.1,25.0,26.3,22.0667,26.1969,23.92,26.1027,24.9694\n2026-08-28,22.1,25.0,26.2,21.9682,25.8495,23.8675,25.8517,24.89\n2026-08-29,22.27,24.9,26.3,22.3219,25.7245,24.2042,25.7695,24.6804\n2026-08-30,22.96,25.3,26.6,23.12,25.9964,24.5408,26.1619,25.2966\n2026-08-31,23.0,25.4,26.9,23.3594,26.2714,24.6025,26.3676,25.5414\n2026-09-01,23.2,25.7,26.8,23.245,26.6438,24.3171,26.3876,25.6988\n2026-09-02,22.8,25.0,26.4,23.1953,26.3111,24.145,25.989,24.7189\n2026-09-03,22.9,25.0,26.5,23.2708,26.537,24.1833,25.8156,24.7862\n2026-09-04,22.8,25.1,26.4,23.1936,26.4151,24.1338,25.8624,24.7179\n2026-09-05,23.0,25.0,26.5,23.6153,25.9182,24.1996,25.7291,25.0767\n2026-09-06,22.7,24.5,25.93,22.891,25.7776,23.8929,25.6754,24.0775\n2026-09-07,21.7,24.0,26.0,22.0625,25.9623,23.6117,25.1741,23.0825\n2026-09-08,21.2,24.0,26.3,21.8878,26.4413,23.7675,25.0351,22.8992\n2026-09-09,21.87,24.2,26.8,22.3545,27.0422,23.97,25.0452,23.3\n2026-09-10,22.4,24.6,27.4,23.0016,27.4484,24.0262,25.279,24.0267\n2026-09-11,22.9,24.7,27.1,23.1698,27.0828,23.9442,25.5582,24.5525\n2026-09-12,22.8,24.4,26.5,22.9812,26.4531,23.4971,25.3145,24.0713\n2026-09-13,21.8,23.7,26.0,21.7484,26.0161,23.36,24.519,23.2096\n2026-09-14,21.4,23.7,25.7,21.4769,25.687,23.2962,24.3546,23.0547\n2026-09-15,21.3,23.8,26.1,21.2068,26.1969,23.4717,24.4022,23.3946\n2026-09-16,21.7,24.0,26.1,21.4307,26.1464,24.1238,24.2228,23.7021\n2026-09-17,21.8,24.1,26.3,21.7849,26.3734,24.5975,24.2473,23.5758\n2026-09-18,22.0,24.3,26.5,22.2062,26.5477,24.6275,24.2136,23.6992\n2026-09-19,22.1,24.3,26.2,22.5208,26.2438,24.6338,23.9084,23.7933\n2026-09-20,22.0,24.3,26.5,22.2995,26.4464,24.9704,24.0866,23.6008\n2026-09-21,21.8,24.0,26.2,21.7135,26.2394,24.4133,24.0805,23.2721\n2026-09-22,20.7,23.4,25.3,20.4432,25.3505,23.9654,23.4097,22.5192\n2026-09-23,20.2,23.1,24.9,20.0036,24.949,23.6922,23.2251,21.9904\n2026-09-24,20.5,23.0,24.9,20.8599,24.8056,23.855,22.9031,21.8612\n2026-09-25,21.0,23.35,25.1,22.2568,25.038,24.1021,22.7876,21.9454\n2026-09-26,21.0,23.8,25.2,23.145,25.2212,24.1883,22.9057,21.6412\n2026-09-27,21.1,23.9,25.5,23.9623,25.2993,24.195,22.9872,21.7892\n2026-09-28,21.1,24.0,25.5,23.812,25.2337,24.4825,23.2479,21.4904\n2026-09-29,21.3,24.1,25.5,24.0089,25.5196,24.4404,23.0445,21.8838\n2026-09-30,21.45,23.9,25.6,23.9026,25.609,23.9125,23.2225,21.7983\n"};
+  var calcs = {}, cache = {}, subs = [];
+  var dark = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+  window.dash = {
+    colors: dark ? ['#6ea8e6','#4cc38a','#e0a440','#c58af0','#f0705f','#5fc9d6','#d6c35f','#9aa4ad']
+                 : ['#2f6fb3','#1f7a4d','#a35f00','#7a3fb3','#c23b2e','#1d8a96','#8a7a10','#5d6670'],
+    calc: function (id, o) { calcs[id] = o; },
+    data: function (id) {
+      if (!(id in cache)) {
+        if (RAW[id] != null) { var rows = d3.csvParse(RAW[id]); cache[id] = { status: 'ok', data: rows, columns: rows.columns }; }
+        else if (calcs[id]) { var c = calcs[id]; cache[id] = { status: 'ok', data: c.fn.apply(null, c.inputs.map(function (i) { return dash.data(i).data; })) }; }
+        else cache[id] = { status: 'missing', data: [] };
+      }
+      return cache[id];
+    },
+    onData: function (fn) { subs.push(fn); var run = function () { fn(); }; if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run(); }
+  };
+  var w = 0; window.addEventListener('resize', function () { var n = document.getElementById('dash-root').clientWidth; if (n !== w) { w = n; subs.forEach(function (f) { f(); }); } });
+})();
+</script>
+<style>
+.ft { font-family: var(--font-anthropic-sans); display: grid; gap: var(--cds-gap-xl); }
+.ft-head h1 { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); margin: 0 0 var(--cds-gap-xs); text-wrap: balance; }
+.ft-take { color: var(--color-fg-muted); font-size: var(--cds-font-size-body); margin: 0; max-width: 70ch; }
+.ft-take b { font-weight: 600; color: var(--color-fg); }
+.ft-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: var(--cds-gap-md); }
+.ft-tile, .ft-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); min-width: 0; }
+.ft-tile .lbl { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.ft-tile .big { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; margin-top: var(--cds-gap-xs); min-height: 1.3em; }
+.ft-tile .sub { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin-top: var(--cds-gap-xs); font-variant-numeric: tabular-nums; }
+.ft-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); gap: var(--cds-gap-md); }
+.ft-card h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0; }
+.ft-card .note { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin: var(--cds-gap-xs) 0 var(--cds-gap-md); max-width: 75ch; }
+.ft-scroll { overflow-x: auto; }
+.ft table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-body); font-variant-numeric: tabular-nums; }
+.ft th { text-align: right; font-weight: var(--cds-font-weight-medium); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); white-space: nowrap; }
+.ft td { text-align: right; padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); white-space: nowrap; }
+.ft th:first-child, .ft td:first-child, .ft .l { text-align: left; }
+.ft tr.port td { font-weight: 600; border-top: 2px solid var(--color-border-line); }
+.ft td.hot { color: var(--color-bad); } .ft td.cold { color: var(--cds-chart-series-1, var(--color-fg)); }
+.ft td.ok { color: var(--color-ok); } .ft td.warn { color: var(--color-warn); } .ft td.bad { color: var(--color-bad); }
+.ft-chips { display: flex; flex-wrap: wrap; gap: var(--cds-gap-xs); margin-bottom: var(--cds-gap-sm); }
+.ft-chips button { font: inherit; font-size: var(--cds-font-size-caption); padding: var(--cds-pad-xs) var(--cds-pad-sm); border-radius: 999px; border: 1px solid var(--color-border-line); background: transparent; color: var(--color-fg); cursor: pointer; }
+.ft-chips button[aria-pressed="true"] { background: var(--color-fg); color: var(--color-bg); border-color: var(--color-fg); }
+.ft-chips button:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+.ft-chart { position: relative; min-height: 320px; }
+.ft-tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ft-tip .d { color: var(--cds-text-secondary); margin-bottom: 2px; }
+.ft-tip .sw { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+.ft-legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin-top: var(--cds-gap-sm); }
+.ft-legend span::before { content: ""; display: inline-block; width: 14px; height: 8px; margin-right: 6px; vertical-align: middle; border-radius: 2px; background: var(--k); }
+.ft-method { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); max-width: 80ch; display: grid; gap: var(--cds-gap-xs); }
+.ft-method p { margin: 0; }
+.ft-fail { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: inherit; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+.ft-fail::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
+[data-dash-source-state=empty] { color: transparent; }
+[data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+</style>
+
+<div class="ft">
+  <header class="ft-head" id="top">
+    <h1>Foodcourt temperature benchmark</h1>
+    <p class="ft-take dash-skeleton" id="take">—</p>
+  </header>
+
+  <section class="ft-tiles" aria-label="Headline figures">
+    <div class="ft-tile"><div class="lbl">Portfolio average · Jun–Sep</div><div class="big dash-skeleton" id="t-port" data-source="fc_vs_portfolio" data-field="period" data-where="foodcourt=Portfolio">—</div><div class="sub">Equal weight per foodcourt</div></div>
+    <div class="ft-tile"><div class="lbl" id="t-warm-l">Warmest foodcourt</div><div class="big dash-skeleton" id="t-warm" data-source="fc_vs_portfolio" data-field="period">—</div><div class="sub" id="t-warm-d" data-source="fc_vs_portfolio" data-field="delta_period">—</div></div>
+    <div class="ft-tile"><div class="lbl" id="t-cool-l">Coolest foodcourt</div><div class="big dash-skeleton" id="t-cool" data-source="fc_vs_portfolio" data-field="period">—</div><div class="sub" id="t-cool-d" data-source="fc_vs_portfolio" data-field="delta_period">—</div></div>
+    <div class="ft-tile"><div class="lbl">Avg daily group band · P10–P90</div><div class="big dash-skeleton" id="t-band" data-source="band_summary" data-field="band">—</div><div class="sub" id="t-band-s" data-source="band_summary" data-field="p50">—</div></div>
+  </section>
+
+  <section class="ft-grid">
+    <div class="ft-card" id="avg-table">
+      <h2>Average temperature by month (°C)</h2>
+      <p class="note">Foodcourt average is the mean of all its sensors at each 30-minute reading, then averaged over the month.</p>
+      <div class="ft-scroll"><table data-source="fc_vs_portfolio" data-row-key="foodcourt">
+        <thead><tr><th data-field="foodcourt">Foodcourt</th><th data-field="jun">Jun</th><th data-field="jul">Jul</th><th data-field="aug">Aug</th><th data-field="sep">Sep</th><th data-field="period">Period</th></tr></thead>
+        <tbody id="avg-body"></tbody>
+      </table></div>
+    </div>
+    <div class="ft-card" id="delta-table">
+      <h2>Difference vs portfolio average (°C)</h2>
+      <p class="note">Foodcourt average minus portfolio average for the same month. Red is warmer, blue is cooler; colour strength scales with size.</p>
+      <div class="ft-scroll"><table data-source="fc_vs_portfolio" data-row-key="foodcourt">
+        <thead><tr><th data-field="foodcourt">Foodcourt</th><th data-field="delta_jun">Jun</th><th data-field="delta_jul">Jul</th><th data-field="delta_aug">Aug</th><th data-field="delta_sep">Sep</th><th data-field="delta_period">Period</th></tr></thead>
+        <tbody id="delta-body"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <section class="ft-card" id="band-chart">
+    <h2>Daily group percentiles vs foodcourt daily average</h2>
+    <p class="note">Shaded band is the group P10–P90 for each day, computed over every 30-minute reading of all 23 sensors. Dashed line is the group P50. Pick a foodcourt to overlay its daily average.</p>
+    <div class="ft-chips" id="chips" role="group" aria-label="Foodcourt to overlay"></div>
+    <div class="ft-chart dash-skeleton" id="chart" data-source="daily_band"></div>
+    <div class="ft-legend" id="legend"></div>
+  </section>
+
+  <section class="ft-card" id="band-share">
+    <h2>Days inside the group P10–P90 band (%)</h2>
+    <p class="note">Share of days in each month where the foodcourt's daily average sat between that day's group P10 and P90. Green 90% or more, amber 70–90%, red below 70%.</p>
+    <div class="ft-scroll"><table data-source="band_share" data-row-key="foodcourt">
+      <thead><tr><th data-field="foodcourt">Foodcourt</th><th data-field="jun">Jun</th><th data-field="jul">Jul</th><th data-field="aug">Aug</th><th data-field="sep">Sep</th><th data-field="period">Period</th><th data-field="below">Below P10</th><th data-field="above">Above P90</th></tr></thead>
+      <tbody id="share-body"></tbody>
+    </table></div>
+  </section>
+
+  <section class="ft-card" id="sensors">
+    <h2>Average temperature by sensor (°C)</h2>
+    <p class="note">Each sensor's mean over its valid readings. Coverage is the share of 30-minute slots with a reading; below 95% is flagged.</p>
+    <div class="ft-chips" id="sens-chips" role="group" aria-label="Filter sensors by foodcourt"></div>
+    <div class="ft-scroll"><table data-source="sensor_avg" data-row-key="sensor">
+      <thead><tr><th data-field="foodcourt">Foodcourt</th><th data-field="sensor" class="l">Sensor</th><th data-field="jun">Jun</th><th data-field="jul">Jul</th><th data-field="aug">Aug</th><th data-field="sep">Sep</th><th data-field="period">Period</th><th data-field="coverage_pct">Coverage</th></tr></thead>
+      <tbody id="sens-body"></tbody>
+    </table></div>
+  </section>
+
+  <section class="ft-method" id="method">
+    <p><b>Period:</b> 1 Jun – 30 Sep 2026, 30-minute readings from the five BMS exports. Missing readings are skipped, not filled.</p>
+    <p><b>Portfolio average:</b> simple mean of the five foodcourt averages, so a foodcourt with five sensors does not outweigh one with four.</p>
+    <p><b>Group percentiles:</b> for each day, P10, P50 and P90 of all readings from all sensors in all foodcourts that day.</p>
+    <p><b>In band:</b> a day counts when the foodcourt's daily average is between that day's group P10 and P90, inclusive.</p>
+  </section>
+</div>
+
+<script>
+(function () {
+  const FC = ['Palas', 'IMTM', 'IMSV', 'IMCJ', 'IMIS'];
+  const M = ['jun', 'jul', 'aug', 'sep', 'period'];
+  const MON = { '06': 'jun', '07': 'jul', '08': 'aug', '09': 'sep' };
+  const r2 = (v) => Math.round(v * 100) / 100;
+  const r1 = (v) => Math.round(v * 10) / 10;
+
+  dash.calc('fc_vs_portfolio', {
+    inputs: ['fc_avg'],
+    title: 'Foodcourt vs portfolio',
+    description: 'Portfolio row is the simple mean of the five foodcourts; delta columns are foodcourt minus portfolio.',
+    fn: (fc_avg) => {
+      const ms = ['jun', 'jul', 'aug', 'sep', 'period'];
+      const rows = fc_avg.map((r) => { const o = { foodcourt: r.foodcourt }; ms.forEach((m) => { o[m] = Number(r[m]); }); return o; });
+      const port = { foodcourt: 'Portfolio' };
+      ms.forEach((m) => { port[m] = Math.round(rows.reduce((s, r) => s + r[m], 0) / rows.length * 100) / 100; });
+      rows.forEach((r) => ms.forEach((m) => { r['delta_' + m] = Math.round((r[m] - port[m]) * 100) / 100; }));
+      ms.forEach((m) => { port['delta_' + m] = 0; });
+      return rows.concat([port]);
+    }
+  });
+
+  dash.calc('band_share', {
+    inputs: ['daily_band'],
+    title: 'Days in group P10–P90 band',
+    description: 'Per foodcourt and month, % of days whose daily average is within the group P10–P90 of that day.',
+    fn: (daily_band) => {
+      const fcs = ['Palas', 'IMTM', 'IMSV', 'IMCJ', 'IMIS'];
+      const mon = { '06': 'jun', '07': 'jul', '08': 'aug', '09': 'sep' };
+      return fcs.map((f) => {
+        const c = {}; let inAll = 0, lo = 0, hi = 0, n = 0;
+        daily_band.forEach((d) => {
+          const v = Number(d[f]), p10 = Number(d.p10), p90 = Number(d.p90);
+          if (d[f] === '' || d[f] == null || isNaN(v)) return;
+          const m = mon[String(d.day).slice(5, 7)];
+          c[m] = c[m] || { n: 0, i: 0 };
+          c[m].n++; n++;
+          if (v < p10) lo++; else if (v > p90) hi++; else { c[m].i++; inAll++; }
+        });
+        const o = { foodcourt: f };
+        Object.keys(mon).forEach((k) => { const m = mon[k]; o[m] = c[m] ? Math.round(c[m].i / c[m].n * 1000) / 10 : null; });
+        o.period = Math.round(inAll / n * 1000) / 10;
+        o.below = Math.round(lo / n * 1000) / 10;
+        o.above = Math.round(hi / n * 1000) / 10;
+        return o;
+      });
+    }
+  });
+
+  dash.calc('band_summary', {
+    inputs: ['daily_band'],
+    title: 'Average daily group band',
+    description: 'Mean of the daily group P10, P50 and P90 over the period.',
+    fn: (daily_band) => {
+      const avg = (k) => Math.round(daily_band.reduce((s, d) => s + Number(d[k]), 0) / daily_band.length * 100) / 100;
+      const p10 = avg('p10'), p50 = avg('p50'), p90 = avg('p90');
+      return [{ p10, p50, p90, band: Math.round((p90 - p10) * 100) / 100 }];
+    }
+  });
+
+  const f2 = d3.format('.2f');
+  const fd = (v) => (v > 0 ? '+' : v < 0 ? '−' : '±') + f2(Math.abs(v));
+  const $ = (id) => document.getElementById(id);
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || getComputedStyle($('chart')).getPropertyValue(n).trim();
+  let pick = 'IMTM', sensPick = 'All';
+
+  function chips(el, opts, cur, onPick) {
+    el.textContent = '';
+    opts.forEach((o) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = o; b.setAttribute('aria-pressed', String(o === cur));
+      b.addEventListener('click', () => onPick(o));
+      el.appendChild(b);
+    });
+  }
+  function fail(el) { el.textContent = ''; const d = document.createElement('div'); d.className = 'ft-fail'; d.textContent = 'Failed to load'; el.appendChild(d); }
+  function unskel(...ids) { ids.forEach((i) => $(i).classList.remove('dash-skeleton')); }
+
+  function drawTables() {
+    const s = dash.data('fc_vs_portfolio');
+    const ab = $('avg-body'), db = $('delta-body');
+    ab.textContent = ''; db.textContent = '';
+    if (s.status !== 'ok') { return; }
+    const rows = s.data;
+    const order = FC.concat(['Portfolio']);
+    const max = d3.max(rows, (r) => Math.max(...M.map((m) => Math.abs(r['delta_' + m])))) || 1;
+    order.forEach((f) => {
+      const r = rows.find((x) => x.foodcourt === f); if (!r) return;
+      const tr = ab.insertRow(); if (f === 'Portfolio') tr.className = 'port';
+      tr.insertCell().textContent = f;
+      M.forEach((m) => { tr.insertCell().textContent = f2(r[m]); });
+      if (f === 'Portfolio') return;
+      const t2 = db.insertRow(); t2.insertCell().textContent = f;
+      M.forEach((m) => {
+        const v = r['delta_' + m]; const td = t2.insertCell(); td.textContent = fd(v);
+        const a = Math.min(1, Math.abs(v) / max) * 0.32;
+        const col = v > 0 ? 'var(--color-bad)' : 'var(--cds-chart-series-1, ' + dash.colors[0] + ')';
+        td.style.background = 'color-mix(in srgb, ' + (v > 0 ? 'var(--color-bad)' : dash.colors[0]) + ' ' + Math.round(a * 100) + '%, transparent)';
+      });
+    });
+  }
+
+  function drawTiles() {
+    const s = dash.data('fc_vs_portfolio');
+    const b = dash.data('band_summary');
+    if (s.status === 'ok') {
+      const rows = s.data.filter((r) => r.foodcourt !== 'Portfolio');
+      const port = s.data.find((r) => r.foodcourt === 'Portfolio');
+      const warm = rows.reduce((a, c) => (c.period > a.period ? c : a));
+      const cool = rows.reduce((a, c) => (c.period < a.period ? c : a));
+      $('t-port').textContent = f2(port.period) + '°C';
+      $('t-warm-l').textContent = 'Warmest · ' + warm.foodcourt;
+      ['t-warm', 't-warm-d'].forEach((i) => $(i).setAttribute('data-where', 'foodcourt=' + warm.foodcourt));
+      $('t-warm').textContent = f2(warm.period) + '°C';
+      $('t-warm-d').textContent = fd(warm.delta_period) + '°C vs portfolio';
+      $('t-cool-l').textContent = 'Coolest · ' + cool.foodcourt;
+      ['t-cool', 't-cool-d'].forEach((i) => $(i).setAttribute('data-where', 'foodcourt=' + cool.foodcourt));
+      $('t-cool').textContent = f2(cool.period) + '°C';
+      $('t-cool-d').textContent = fd(cool.delta_period) + '°C vs portfolio';
+      unskel('t-port', 't-warm', 't-cool');
+    }
+    if (b.status === 'ok') {
+      const x = b.data[0];
+      $('t-band').textContent = f2(x.band) + '°C wide';
+      $('t-band-s').textContent = 'Median P50 ' + f2(x.p50) + '°C';
+      unskel('t-band');
+    }
+    const sh = dash.data('band_share');
+    const take = $('take');
+    if (s.status === 'ok' && sh.status === 'ok') {
+      const rows = s.data.filter((r) => r.foodcourt !== 'Portfolio');
+      const port = s.data.find((r) => r.foodcourt === 'Portfolio');
+      const warm = rows.reduce((a, c) => (c.period > a.period ? c : a));
+      const cool = rows.reduce((a, c) => (c.period < a.period ? c : a));
+      const outs = sh.data.filter((r) => r.period < 90).sort((a, c) => a.period - c.period);
+      take.textContent = '';
+      const add = (t, bold, attrs) => { const e = document.createElement(bold ? 'b' : 'span'); e.textContent = t; if (attrs) Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v)); take.appendChild(e); };
+      add('Across Jun–Sep the portfolio averaged ');
+      add(f2(port.period) + '°C', true, { 'data-source': 'fc_vs_portfolio', 'data-field': 'period', 'data-where': 'foodcourt=Portfolio' });
+      add('. ' + warm.foodcourt + ' ran ');
+      add(fd(warm.delta_period) + '°C', true, { 'data-source': 'fc_vs_portfolio', 'data-field': 'delta_period', 'data-where': 'foodcourt=' + warm.foodcourt });
+      add(' warmer and ' + cool.foodcourt + ' ');
+      add(fd(cool.delta_period) + '°C', true, { 'data-source': 'fc_vs_portfolio', 'data-field': 'delta_period', 'data-where': 'foodcourt=' + cool.foodcourt });
+      add(' cooler. ');
+      if (outs.length) {
+        add(outs.map((o) => o.foodcourt).join(' and ') + (outs.length > 1 ? ' are' : ' is') + ' the only foodcourt' + (outs.length > 1 ? 's' : '') + ' often outside the group P10–P90 band (');
+        outs.forEach((o, i) => { if (i) add(', '); add(o.foodcourt + ' '); add(o.period + '%', true, { 'data-source': 'band_share', 'data-field': 'period', 'data-where': 'foodcourt=' + o.foodcourt }); });
+        add(' of days in band); the rest stay inside it every day.');
+      }
+      take.classList.remove('dash-skeleton');
+    }
+  }
+
+  function drawShare() {
+    const s = dash.data('band_share'); const tb = $('share-body'); tb.textContent = '';
+    if (s.status !== 'ok') return;
+    FC.forEach((f) => {
+      const r = s.data.find((x) => x.foodcourt === f); if (!r) return;
+      const tr = tb.insertRow(); tr.insertCell().textContent = f;
+      M.forEach((m) => { const td = tr.insertCell(); const v = r[m]; td.textContent = v == null ? '—' : d3.format('.1f')(v) + '%'; td.className = v >= 90 ? 'ok' : v >= 70 ? 'warn' : 'bad'; });
+      ['below', 'above'].forEach((k) => { const td = tr.insertCell(); td.textContent = d3.format('.1f')(r[k]) + '%'; });
+    });
+  }
+
+  function drawSensors() {
+    const s = dash.data('sensor_avg'); const tb = $('sens-body'); tb.textContent = '';
+    chips($('sens-chips'), ['All'].concat(FC), sensPick, (o) => { sensPick = o; drawSensors(); });
+    if (s.status !== 'ok') return;
+    s.data.filter((r) => sensPick === 'All' || r.foodcourt === sensPick).forEach((r) => {
+      const tr = tb.insertRow();
+      tr.insertCell().textContent = r.foodcourt;
+      const sc = tr.insertCell(); sc.textContent = r.sensor; sc.className = 'l';
+      M.forEach((m) => { tr.insertCell().textContent = f2(Number(r[m])); });
+      const c = tr.insertCell(); const v = Number(r.coverage_pct); c.textContent = d3.format('.1f')(v) + '%'; if (v < 95) c.className = 'warn';
+    });
+  }
+
+  function drawChart() {
+    const el = $('chart'); const s = dash.data('daily_band');
+    chips($('chips'), FC.concat(['None']), pick, (o) => { pick = o; drawChart(); });
+    if (s.status === 'error') { el.classList.remove('dash-skeleton'); fail(el); return; }
+    if (s.status !== 'ok') { el.textContent = ''; return; }
+    el.classList.remove('dash-skeleton'); el.textContent = '';
+    const parse = d3.utcParse('%Y-%m-%d');
+    const rows = s.data.map((d) => { const o = { day: parse(String(d.day).slice(0, 10)), raw: String(d.day), p10: +d.p10, p50: +d.p50, p90: +d.p90 }; FC.forEach((f) => { o[f] = d[f] === '' ? NaN : +d[f]; }); return o; });
+    const W = Math.max(300, el.clientWidth), H = 320;
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Daily group P10 to P90 band with foodcourt overlay');
+    const vals = rows.flatMap((r) => [r.p10, r.p90].concat(pick !== 'None' ? [r[pick]] : [])).filter((v) => !isNaN(v));
+    const y = d3.scaleLinear([Math.floor(d3.min(vals)) - 0.5, Math.ceil(d3.max(vals)) + 0.5], [H - 28, 10]);
+    const yt = y.ticks(6);
+    const probe = svg.append('text').attr('font-size', 11).text('30.0');
+    const ml = probe.node().getComputedTextLength() + 14; probe.remove();
+    const x = d3.scaleUtc(d3.extent(rows, (r) => r.day), [ml, W - 12]);
+    const g = svg.append('g');
+    g.selectAll('line.g').data(yt).join('line').attr('x1', ml).attr('x2', W - 12).attr('y1', y).attr('y2', y).attr('stroke', 'var(--cds-chart-grid)').attr('stroke-width', 1);
+    g.selectAll('text.y').data(yt).join('text').attr('x', ml - 6).attr('y', (d) => y(d) + 4).attr('text-anchor', 'end').attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text((d) => d + '°');
+    const xt = x.ticks(d3.utcMonth.every(1));
+    g.selectAll('text.x').data(xt).join('text').attr('x', x).attr('y', H - 8).attr('text-anchor', 'start').attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text(d3.utcFormat('%b'));
+    g.selectAll('line.x').data(xt).join('line').attr('x1', x).attr('x2', x).attr('y1', 10).attr('y2', H - 28).attr('stroke', 'var(--cds-chart-grid)');
+    svg.append('path').datum(rows).attr('fill', 'var(--cds-chart-muted)').attr('fill-opacity', 0.35)
+      .attr('d', d3.area().x((d) => x(d.day)).y0((d) => y(d.p10)).y1((d) => y(d.p90)));
+    svg.append('path').datum(rows).attr('fill', 'none').attr('stroke', 'var(--cds-chart-reference)').attr('stroke-width', 1.5).attr('stroke-dasharray', '4 3')
+      .attr('d', d3.line().x((d) => x(d.day)).y((d) => y(d.p50)));
+    const col = dash.colors[0];
+    if (pick !== 'None') {
+      svg.append('path').datum(rows).attr('fill', 'none').attr('stroke', col).attr('stroke-width', 2).attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round')
+        .attr('d', d3.line().defined((d) => !isNaN(d[pick])).x((d) => x(d.day)).y((d) => y(d[pick])));
+      svg.selectAll('circle.o').data(rows.filter((d) => !isNaN(d[pick]) && (d[pick] < d.p10 || d[pick] > d.p90))).join('circle')
+        .attr('cx', (d) => x(d.day)).attr('cy', (d) => y(d[pick])).attr('r', 2.5).attr('fill', 'var(--cds-chart-status-critical)');
+    }
+    const lg = $('legend'); lg.textContent = '';
+    [['Group P10–P90', 'var(--cds-chart-muted)'], ['Group P50', 'var(--cds-chart-reference)']].concat(pick !== 'None' ? [[pick + ' daily average', col], ['Day outside band', 'var(--cds-chart-status-critical)']] : [])
+      .forEach(([t, c]) => { const sp = document.createElement('span'); sp.textContent = t; sp.style.setProperty('--k', c); lg.appendChild(sp); });
+    const tip = document.createElement('div'); tip.className = 'ft-tip'; tip.hidden = true; el.appendChild(tip);
+    const rule = svg.append('line').attr('y1', 10).attr('y2', H - 28).attr('stroke', 'var(--cds-chart-axis)').attr('visibility', 'hidden');
+    const dot = svg.append('circle').attr('r', 4).attr('fill', col).attr('visibility', 'hidden');
+    const bis = d3.bisector((d) => d.day).center;
+    svg.append('rect').attr('x', ml).attr('y', 0).attr('width', W - 12 - ml).attr('height', H).attr('fill', 'transparent')
+      .on('pointermove', (ev) => {
+        const [mx] = d3.pointer(ev); const d = rows[bis(rows, x.invert(mx))];
+        const px = x(d.day); rule.attr('x1', px).attr('x2', px).attr('visibility', 'visible');
+        if (pick !== 'None' && !isNaN(d[pick])) dot.attr('cx', px).attr('cy', y(d[pick])).attr('visibility', 'visible'); else dot.attr('visibility', 'hidden');
+        tip.textContent = '';
+        const add = (t, cls, c) => { const r = document.createElement('div'); if (cls) r.className = cls; if (c) { const s = document.createElement('span'); s.className = 'sw'; s.style.background = c; r.appendChild(s); } r.appendChild(document.createTextNode(t)); tip.appendChild(r); };
+        add(d3.utcFormat('%a %-d %b')(d.day), 'd');
+        add('P90 ' + f2(d.p90) + '°C'); add('P50 ' + f2(d.p50) + '°C'); add('P10 ' + f2(d.p10) + '°C');
+        if (pick !== 'None') add(pick + ' ' + (isNaN(d[pick]) ? '—' : f2(d[pick]) + '°C'), null, col);
+        tip.hidden = false;
+        const cw = el.clientWidth, tw = tip.offsetWidth, sx = px / W * cw;
+        tip.style.left = Math.max(0, Math.min(cw - tw, sx + 12 + tw > cw ? sx - tw - 12 : sx + 12)) + 'px';
+        tip.style.top = '12px';
+      })
+      .on('pointerleave', () => { tip.hidden = true; rule.attr('visibility', 'hidden'); dot.attr('visibility', 'hidden'); });
+  }
+
+  dash.onData(() => { drawTiles(); drawTables(); drawShare(); drawSensors(); drawChart(); });
+})();
+</script>
+
+<p style="margin-top:32px;font-size:.78rem;color:var(--color-fg-muted)">Source data: <a href="data/foodcourt_monthly_avg.csv" style="color:inherit">foodcourt_monthly_avg.csv</a> · <a href="data/sensor_monthly_avg.csv" style="color:inherit">sensor_monthly_avg.csv</a> · <a href="data/daily_group_percentiles.csv" style="color:inherit">daily_group_percentiles.csv</a></p>
+</div>
+</body>
+</html>
